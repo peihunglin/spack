@@ -111,3 +111,10 @@ def test_namespaces_shown_correctly(database):
 
     out = find('--namespace')
     assert 'builtin.mock.zmpi' in out
+
+
+@pytest.mark.db
+@pytest.mark.usefixtures('database')
+def test_find_command_basic_usage():
+    output = find()
+    assert 'mpileaks' in output
