@@ -114,7 +114,6 @@ def test_namespaces_shown_correctly(database):
 
 
 @pytest.mark.db
-@pytest.mark.usefixtures('database')
-def test_find_command_basic_usage():
+def test_find_command_basic_usage(database):
     output = find()
     assert 'mpileaks' in output
