@@ -33,11 +33,12 @@ class Romp(CMakePackage):
     version('develop', branch='master')
     # version('1.2.3', '0123456789abcdef0123456789abcdef')
      
-    # FIXME: Add dependencies if required.
     depends_on('boost')
     depends_on('dyninst')
     depends_on('gflags')
     depends_on('glog')
+    depends_on('gperftools')
+    depends_on('llvm-openmp') 
 
     def cmake_args(self):
         spec = self.spec
