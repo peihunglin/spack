@@ -58,7 +58,8 @@ config:
   # `spack clean -a`, so it is important that the specified directory uniquely
   # identifies Spack staging to avoid accidentally wiping out non-Spack work.
   build_stage:
-    - $tempdir/spack-stage
+    - $HOME/.spack/stage
+      #- $tempdir/spack-stage
 
 
   # Cache directory for already downloaded source tarballs and archived
