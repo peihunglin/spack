@@ -35,7 +35,7 @@ class Romp(CMakePackage):
             description='Build with dyninst debug info')
        
     depends_on('boost')
-    depends_on('dyninst', when='~debug_dyninst')
+    depends_on('dyninst@10.1.1', when='~debug_dyninst')
     depends_on('gflags')
     depends_on('glog')
     depends_on('gperftools')

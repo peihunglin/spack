@@ -12,9 +12,10 @@ class Dyninst(CMakePackage):
     are executing without recompiling, re-linking, or re-executing."""
 
     homepage = "https://dyninst.org"
-    git      = "https://github.com/dyninst/dyninst.git"
+    git      = "https://github.com/zygyz/dyninst.git"
 
     version('develop', branch='master')
+    version('10.1.1', branch='instrument_linemap')
     version('10.1.0', tag='v10.1.0')
     version('10.0.0', tag='v10.0.0')
     version('9.3.2', tag='v9.3.2')
@@ -67,7 +68,6 @@ class Dyninst(CMakePackage):
         filter_file('USE_COTIRE true', 'USE_COTIRE false',
                     'cmake/shared.cmake')
 
-    # New style cmake args, starting with 10.1.
     @when('@10.1.0:')
     def cmake_args(self):
         spec = self.spec
