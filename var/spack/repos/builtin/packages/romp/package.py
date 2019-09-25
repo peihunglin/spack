@@ -33,26 +33,29 @@ class Romp(CMakePackage):
 
     variant('debug_dyninst', default=False,
             description='Build with dyninst debug info')
+    variant('debug_ompt', default=False,
+            description='Build with debug mode openmp lib')
        
     depends_on('boost')
     depends_on('dyninst@10.1.1', when='~debug_dyninst')
     depends_on('gflags')
     depends_on('glog')
     depends_on('gperftools')
-    depends_on('llvm-openmp') 
+    depends_on('llvm-openmp@debug-ompt', when='+debug_ompt') 
+    depends_on('llvm-openmp@romp-mod', when='~debug_ompt') 
 
     def cmake_args(self):
         spec = self.spec
-        print(spec)
         args = [
              '-DCMAKE_CXX_FLAGS=%s' % '-std=c++11',
         ]
+        cmake_prefix_path = [self.spec['llvm-openmp'].prefix];
         if '+debug_dyninst' in spec:
             args.append('-DCUSTOM_DYNINST=ON')
             # suppose the debug version of dyninst is installed
             # at $HOME/dyninst; pass this path to CMAKE_PREFIX_PATH
             home_dir = os.path.expanduser('~') 
             dyninst_path = os.path.join(home_dir, 'dyninst')
-            arg = '-DCMAKE_PREFIX_PATH=' + dyninst_path
-            args.append(arg)
+            cmake_prefix_path.append(dyninst_path)
+        args.append('-DCMAKE_PREFIX_PATH=' + ';'.join(cmake_prefix_path))
         return args 
