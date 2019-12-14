@@ -15,6 +15,7 @@ class Dyninst(CMakePackage):
     git      = "https://github.com/zygyz/dyninst.git"
 
     version('develop', branch='master')
+    version('10.1.2', branch='instrument_linemap_2')
     version('10.1.1', branch='instrument_linemap')
     version('10.1.0', tag='v10.1.0')
     version('10.0.0', tag='v10.0.0')

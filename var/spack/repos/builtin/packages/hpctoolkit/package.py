@@ -15,11 +15,12 @@ class Hpctoolkit(AutotoolsPackage):
     and attributes them to the full calling context in which they occur."""
 
     homepage = "http://hpctoolkit.org"
-    git      = "https://github.com/HPCToolkit/hpctoolkit.git"
+    git      = "https://github.com/zygyz/hpctoolkit.git"
     maintainers = ['mwkrentel']
 
     version('master', branch='master')
     version('gpu', branch='master-gpu')
+    version('dyninst', branch='dyninst_unwind')
     version('2019.08.14', commit='6ea44ed3f93ede2d0a48937f288a2d41188a277c')
     version('2018.12.28', commit='8dbf0d543171ffa9885344f32f23cc6f7f6e39bc')
     version('2018.11.05', commit='d0c43e39020e67095b1f1d8bb89b75f22b12aee9')
@@ -61,7 +62,7 @@ class Hpctoolkit(AutotoolsPackage):
     depends_on('boost' + boost_libs)
     depends_on('boost' + ' visibility=global', when='@gpu')
     depends_on('bzip2', type='link')
-    depends_on('dyninst')
+    depends_on('dyninst@10.1.2')
     depends_on('elfutils~nls', type='link')
     depends_on('intel-tbb')
     depends_on('libdwarf')
