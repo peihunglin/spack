@@ -26,18 +26,18 @@ import os.path
 class Romp(CMakePackage):
     """FIXME: Put a proper description of your package here."""
 
-    git = "https://github.com/zygyz/romp-v2.git" 
+    git = "https://github.com/zygyz/romp.git" 
 
-    version('experimental', branch='experimental')
     version('develop', branch='master')
 
     variant('debug_dyninst', default=False,
             description='Build with dyninst debug info')
+
     variant('debug_ompt', default=False,
             description='Build with debug mode openmp lib')
        
     depends_on('boost')
-    depends_on('dyninst@10.1.1', when='~debug_dyninst')
+    depends_on('dyninst@10.1.2', when='~debug_dyninst')
     depends_on('gflags')
     depends_on('glog')
     depends_on('gperftools')
