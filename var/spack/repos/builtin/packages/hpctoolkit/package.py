@@ -62,7 +62,7 @@ class Hpctoolkit(AutotoolsPackage):
     depends_on('boost' + boost_libs)
     depends_on('boost' + ' visibility=global', when='@gpu')
     depends_on('bzip2', type='link')
-    depends_on('dyninst@10.1.2')
+    depends_on('dyninst@develop')
     depends_on('elfutils~nls', type='link')
     depends_on('intel-tbb')
     depends_on('libdwarf')
