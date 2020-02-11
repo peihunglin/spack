@@ -15,7 +15,7 @@ class LlvmOpenmp(CMakePackage):
 #    url      = "https://releases.llvm.org/8.0.0/openmp-8.0.0.src.tar.xz"
 
 #    version('8.0.0', sha256='f7b1705d2f16c4fc23d6531f67d2dd6fb78a077dd346b02fed64f4b8df65c9d5')
-    version('romp', branch='romp')
+    version('romp-mod', branch='romp')
     version('debug-ompt', branch='ompt-debug')
 
     depends_on('cmake@2.8:', type='build')
