@@ -42,7 +42,7 @@ class Romp(CMakePackage):
     depends_on('glog')
     depends_on('gperftools')
     depends_on('llvm-openmp@debug-ompt', when='+debug_ompt') 
-    depends_on('llvm-openmp@romp-mod', when='~debug_ompt') 
+    depends_on('llvm-openmp@romp', when='~debug_ompt') 
 
     def cmake_args(self):
         spec = self.spec
