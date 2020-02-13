@@ -35,6 +35,7 @@ class LlvmOpenmp(CMakePackage):
         # Disable LIBOMP_INSTALL_ALIASES, otherwise the library is installed as
         # libgomp alias which can conflict with GCC's libgomp.
         return ['-DLIBOMP_INSTALL_ALIASES=OFF',
+                '-DLIBOMPTARGET_NVPTX_ENABLE_BCLIB=OFF',
                 '-DLIBOMP_OMPT_SUPPORT=ON',
                 '-DLIBOMP_OMPT_OPTIONAL=ON',]
 
