@@ -35,14 +35,18 @@ class Romp(CMakePackage):
 
     variant('debug_ompt', default=False,
             description='Build with debug mode openmp lib')
-       
+    
+    variant('exp_ompt', default=False,
+            description='Build with experiment mod openmp lib')
+
     depends_on('boost')
     depends_on('dyninst@10.1.2', when='~debug_dyninst')
     depends_on('gflags')
     depends_on('glog')
     depends_on('gperftools')
+    depends_on('llvm-openmp@romp-exp', when='+exp_ompt')
     depends_on('llvm-openmp@debug-ompt', when='+debug_ompt') 
-    depends_on('llvm-openmp@romp-mod', when='~debug_ompt') 
+    depends_on('llvm-openmp@romp-mod', when='~debug_ompt~exp_ompt') 
 
     def cmake_args(self):
         spec = self.spec
