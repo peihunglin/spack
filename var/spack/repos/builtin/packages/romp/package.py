@@ -40,7 +40,7 @@ class Romp(CMakePackage):
             description='Build with experiment mod openmp lib')
 
     depends_on('boost')
-    depends_on('dyninst@10.1.2', when='~debug_dyninst')
+    depends_on('dyninst@10.1.2~openmp', when='~debug_dyninst')
     depends_on('gflags')
     depends_on('glog')
     depends_on('gperftools')
