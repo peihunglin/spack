@@ -52,6 +52,7 @@ class Romp(CMakePackage):
         spec = self.spec
         args = [
              '-DCMAKE_CXX_FLAGS=%s' % '-std=c++17',
+             '-DCMAKE_BUILD_TYPE=%s' % 'RelWithDebInfo',
         ]
         cmake_prefix_path = [self.spec['llvm-openmp'].prefix];
         if '+debug_dyninst' in spec:
