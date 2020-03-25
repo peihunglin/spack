@@ -66,6 +66,10 @@ class Trilinos(CMakePackage):
             description='Enable explicit template instantiation (ETI)')
     variant('float', default=False,
             description='Enable single precision (float) numbers in Trilinos')
+    variant('gotype', default='long',
+            values=('int', 'long', 'long_long'),
+            multi=False,
+            description='global ordinal type for Tpetra')
     variant('fortran',      default=True,
             description='Compile with Fortran support')
     variant('openmp',       default=False,
@@ -82,18 +86,24 @@ class Trilinos(CMakePackage):
             description='Compile with Boost')
     variant('cgns',         default=False,
             description='Enable CGNS')
-    variant('adios2',         default=False,
+    variant('adios2',       default=False,
             description='Enable ADIOS2')
+    variant('glm',          default=True,
+            description='Compile with GLM')
     variant('gtest',        default=True,
             description='Compile with Gtest')
     variant('hdf5',         default=True,
             description='Compile with HDF5')
     variant('hypre',        default=True,
             description='Compile with Hypre preconditioner')
+    variant('matio',        default=True,
+            description='Compile with Matio')
     variant('metis',        default=True,
             description='Compile with METIS and ParMETIS')
     variant('mumps',        default=True,
             description='Compile with support for MUMPS solvers')
+    variant('netcdf',       default=True,
+            description='Compile with netcdf')
     variant('pnetcdf',      default=False,
             description='Compile with parallel-netcdf')
     variant('suite-sparse', default=True,
@@ -308,6 +318,8 @@ class Trilinos(CMakePackage):
     # ADIOS2 was only added after v12.14.1
     conflicts('+adios2', when='@:12.14.1')
     conflicts('+adios2', when='@xsdk-0.2.0')
+    conflicts('+pnetcdf', when='~netcdf')
+
     # ###################### Dependencies ##########################
 
     # Everything should be compiled position independent (-fpic)
@@ -315,17 +327,17 @@ class Trilinos(CMakePackage):
     depends_on('lapack')
     depends_on('boost', when='+boost')
     depends_on('boost', when='+dtk')
-    depends_on('matio')
-    depends_on('glm')
+    depends_on('matio', when='+matio')
+    depends_on('glm', when='+glm')
     depends_on('metis@5:', when='+metis')
     depends_on('suite-sparse', when='+suite-sparse')
     depends_on('zlib', when="+zlib")
 
     # MPI related dependencies
     depends_on('mpi')
-    depends_on('netcdf-c+mpi', when="~pnetcdf")
-    depends_on('netcdf-c+mpi+parallel-netcdf', when="+pnetcdf@master,12.12.1:")
-    depends_on('parallel-netcdf', when="+pnetcdf@master,12.12.1:")
+    depends_on('netcdf-c+mpi', when="+netcdf~pnetcdf")
+    depends_on('netcdf-c+mpi+parallel-netcdf', when="+netcdf+pnetcdf@master,12.12.1:")
+    depends_on('parallel-netcdf', when="+netcdf+pnetcdf@master,12.12.1:")
     depends_on('parmetis', when='+metis')
     depends_on('cgns', when='+cgns')
     depends_on('adios2', when='+adios2')
@@ -533,13 +545,22 @@ class Trilinos(CMakePackage):
             '-DTPL_ENABLE_LAPACK=ON',
             '-DLAPACK_LIBRARY_NAMES=%s' % ';'.join(lapack.names),
             '-DLAPACK_LIBRARY_DIRS=%s' % ';'.join(lapack.directories),
-            '-DTPL_ENABLE_Netcdf:BOOL=ON',
-            '-DNetCDF_ROOT:PATH=%s' % spec['netcdf-c'].prefix,
+            '-DTPL_ENABLE_GLM:BOOL=%s' % ('ON' if '+glm' in spec else 'OFF'),
+            '-DTPL_ENABLE_Matio:BOOL=%s' % (
+                'ON' if '+matio' in spec else 'OFF'),
             '-DTPL_ENABLE_X11:BOOL=%s' % (
                 'ON' if '+x11' in spec else 'OFF'),
             '-DTrilinos_ENABLE_Gtest:BOOL=%s' % (
                 'ON' if '+gtest' in spec else 'OFF'),
         ])
+
+        if '+netcdf' in spec:
+            options.extend([
+                '-DTPL_ENABLE_Netcdf:BOOL=ON',
+                '-DNetCDF_ROOT:PATH=%s' % spec['netcdf-c'].prefix
+            ])
+        else:
+            options.extend(['-DTPL_ENABLE_Netcdf:BOOL=OFF'])
 
         if '+hypre' in spec:
             options.extend([
@@ -744,10 +765,15 @@ class Trilinos(CMakePackage):
         )
 
         if '+explicit_template_instantiation' in spec and '+tpetra' in spec:
+            gotype = spec.variants['gotype'].value
             options.extend([
                 '-DTpetra_INST_DOUBLE:BOOL=ON',
-                '-DTpetra_INST_INT_LONG:BOOL=ON',
-                '-DTpetra_INST_INT_LONG_LONG:BOOL=ON',
+                '-DTpetra_INST_INT_INT:BOOL=%s' % (
+                    'ON' if gotype == 'int' else 'OFF'),
+                '-DTpetra_INST_INT_LONG:BOOL=%s' % (
+                    'ON' if gotype == 'long' else 'OFF'),
+                '-DTpetra_INST_INT_LONG_LONG:BOOL=%s' % (
+                    'ON' if gotype == 'long_long' else 'OFF'),
                 '-DTpetra_INST_COMPLEX_DOUBLE=%s' % complex_s,
                 '-DTpetra_INST_COMPLEX_FLOAT=%s' % complex_float_s,
                 '-DTpetra_INST_FLOAT=%s' % float_s,

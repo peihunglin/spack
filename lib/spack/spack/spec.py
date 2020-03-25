@@ -369,6 +369,10 @@ class ArchSpec(object):
         if not need_to_check:
             return True
 
+        # self is not concrete, but other_target is there and strict=True
+        if self.target is None:
+            return False
+
         for target_range in str(other_target).split(','):
             t_min, sep, t_max = target_range.partition(':')
 
@@ -3116,7 +3120,7 @@ class Spec(object):
             A copy of this spec.
 
         Examples:
-            Deep copy with dependnecies::
+            Deep copy with dependencies::
 
                 spec.copy()
                 spec.copy(deps=True)
