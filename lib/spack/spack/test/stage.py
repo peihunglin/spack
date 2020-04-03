@@ -8,7 +8,6 @@ import errno
 import os
 import collections
 import shutil
-import stat
 import tempfile
 import getpass
 
@@ -664,22 +663,12 @@ class TestStage(object):
         path = spack.stage._first_accessible_path(files)
         assert path == name
         assert os.path.isdir(path)
-        check_stage_dir_perms(str(tmpdir), path)
 
         # Ensure an existing path is returned
         spack_subdir = spack_dir.join('existing').ensure(dir=True)
         subdir = str(spack_subdir)
         path = spack.stage._first_accessible_path([subdir])
         assert path == subdir
-
-        # Ensure a path with a `$user` node has the right permissions
-        # for its subdirectories.
-        user = getpass.getuser()
-        user_dir = spack_dir.join(user, 'has', 'paths')
-        user_path = str(user_dir)
-        path = spack.stage._first_accessible_path([user_path])
-        assert path == user_path
-        check_stage_dir_perms(str(tmpdir), path)
 
         # Cleanup
         shutil.rmtree(str(name))

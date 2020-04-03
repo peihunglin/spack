@@ -106,9 +106,20 @@ def _first_accessible_path(paths):
                 if can_access(path):
                     return path
             else:
-                # Now create the stage root with the proper group/perms.
-                _create_stage_root(path)
-                return path
+                # The path doesn't exist so create it and adjust permissions
+                # and group as needed (e.g., shared ``$tempdir``).
+                prefix = os.path.sep
+                parts = path.strip(os.path.sep).split(os.path.sep)
+                for part in parts:
+                    prefix = os.path.join(prefix, part)
+                    if not os.path.exists(prefix):
+                        break
+                parent = os.path.dirname(prefix)
+                gid = os.stat(parent).st_gid
+                mkdirp(path, group=gid, default_perms='parents')
+
+                if can_access(path):
+                    return path
 
         except OSError as e:
             tty.debug('OSError while checking stage path %s: %s' % (
@@ -157,7 +168,7 @@ def get_stage_root():
         if isinstance(candidates, string_types):
             candidates = [candidates]
 
-        resolved_candidates = _resolve_paths(candidates)
+        resolved_candidates = [sup.canonicalize_path(x) for x in candidates]
         path = _first_accessible_path(resolved_candidates)
         if not path:
             raise StageError("No accessible stage paths in:",

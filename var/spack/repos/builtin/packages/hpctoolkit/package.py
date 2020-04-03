@@ -15,10 +15,11 @@ class Hpctoolkit(AutotoolsPackage):
     and attributes them to the full calling context in which they occur."""
 
     homepage = "http://hpctoolkit.org"
-    git      = "https://github.com/HPCToolkit/hpctoolkit.git"
+    git      = "https://github.com/zygyz/hpctoolkit.git"
     maintainers = ['mwkrentel']
 
     version('master', branch='master')
+    version('dyninst', branch='dyninst_unwind2')
     version('2020.03.01', commit='94ede4e6fa1e05e6f080be8dc388240ea027f769')
     version('2019.12.28', commit='b4e1877ff96069fd8ed0fdf0e36283a5b4b62240')
     version('2019.08.14', commit='6ea44ed3f93ede2d0a48937f288a2d41188a277c')
@@ -41,6 +42,8 @@ class Hpctoolkit(AutotoolsPackage):
     variant('mpi', default=False,
             description='Build hpcprof-mpi, the MPI version of hpcprof.')
 
+    variant('dyninst', default=False,
+            description='Build with dyninst that supports dyninst linemap')
     # We can't build with both PAPI and perfmon for risk of segfault
     # from mismatched header files (unless PAPI installs the perfmon
     # headers).
@@ -65,6 +68,7 @@ class Hpctoolkit(AutotoolsPackage):
     depends_on('boost' + boost_libs)
     depends_on('bzip2+shared', type='link')
     depends_on('dyninst@9.3.2:')
+    depends_on('dyninst@10.1.2~openmp', when='+dyninst')
     depends_on('elfutils+bzip2+xz~nls', type='link')
     depends_on('intel-tbb+shared')
     depends_on('libdwarf')

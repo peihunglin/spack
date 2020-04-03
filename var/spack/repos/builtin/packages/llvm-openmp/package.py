@@ -11,17 +11,33 @@ class LlvmOpenmp(CMakePackage):
     an executable OpenMP program that are outside the compiler itself."""
 
     homepage = "https://openmp.llvm.org/"
-    url      = "https://releases.llvm.org/9.0.0/openmp-9.0.0.src.tar.xz"
+    git      = "https://github.com/zygyz/openmp.git"
+#    url      = "https://releases.llvm.org/8.0.0/openmp-8.0.0.src.tar.xz"
 
-    version('9.0.0', sha256='9979eb1133066376cc0be29d1682bc0b0e7fb541075b391061679111ae4d3b5b')
-    version('8.0.0', sha256='f7b1705d2f16c4fc23d6531f67d2dd6fb78a077dd346b02fed64f4b8df65c9d5')
+#    version('8.0.0', sha256='f7b1705d2f16c4fc23d6531f67d2dd6fb78a077dd346b02fed64f4b8df65c9d5')
+    version('romp-mod', branch='romp')
+    version('romp-exp', branch='romp-exp')
+    version('debug-ompt', branch='ompt-debug')
 
     depends_on('cmake@2.8:', type='build')
+    
+    @when('@debug-ompt')
+    def cmake_args(self):
+        # Disable LIBOMP_INSTALL_ALIASES, otherwise the library is installed as
+        # libgomp alias which can conflict with GCC's libgomp.
+        # Also, turn on debug flag for ompt
+        return ['-DLIBOMP_INSTALL_ALIASES=OFF', 
+                '-DLIBOMP_OMPT_DEBUG=ON',
+                '-DLIBOMP_OMPT_SUPPORT=ON',
+                '-DLIBOMP_OMPT_OPTIONAL=ON',]
 
     def cmake_args(self):
         # Disable LIBOMP_INSTALL_ALIASES, otherwise the library is installed as
         # libgomp alias which can conflict with GCC's libgomp.
-        return ['-DLIBOMP_INSTALL_ALIASES=OFF']
+        return ['-DLIBOMP_INSTALL_ALIASES=OFF',
+                '-DLIBOMPTARGET_NVPTX_ENABLE_BCLIB=OFF',
+                '-DLIBOMP_OMPT_SUPPORT=ON',
+                '-DLIBOMP_OMPT_OPTIONAL=ON',]
 
     @property
     def libs(self):
