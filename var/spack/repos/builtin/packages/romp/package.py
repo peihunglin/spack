@@ -28,7 +28,7 @@ class Romp(CMakePackage):
 
     git = "https://github.com/zygyz/romp.git" 
 
-    version('develop', branch='master')
+    version('master', branch='master')
 
     variant('debug_dyninst', default=False,
             description='Build with dyninst debug info')
