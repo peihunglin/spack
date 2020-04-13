@@ -30,6 +30,8 @@ class Romp(CMakePackage):
 
     version('master', branch='master')
 
+    version('master-stats', branch='master-stats')
+
     variant('debug_dyninst', default=False,
             description='Build with dyninst debug info')
 
@@ -38,7 +40,7 @@ class Romp(CMakePackage):
     
     variant('exp_ompt', default=False,
             description='Build with experiment mod openmp lib')
-
+    
     depends_on('boost')
     depends_on('dyninst@10.1.2~openmp', when='~debug_dyninst')
     depends_on('gflags')

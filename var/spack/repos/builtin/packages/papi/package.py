@@ -66,7 +66,8 @@ class Papi(Package):
                     configure(*configure_args)
         with working_dir("src"):
 
-            configure_args = ["--prefix=%s" % prefix]
+            configure_args = ["--prefix=%s" % prefix,
+                              "CFLAGS=-O0"]
 
             # PAPI uses MPI if MPI is present; since we don't require
             # an MPI package, we ensure that all attempts to use MPI

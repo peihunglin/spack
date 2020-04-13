@@ -50,7 +50,7 @@ class Hpctoolkit(AutotoolsPackage):
     variant('papi', default=False,
             description='Use PAPI instead of perfmon for access to '
             'the hardware performance counters.')
-
+    
     variant('all-static', default=False,
             description='Needed when MPICXX builds static binaries '
             'for the compute nodes.')
@@ -82,7 +82,7 @@ class Hpctoolkit(AutotoolsPackage):
 
     depends_on('cuda', when='+cuda')
     depends_on('intel-xed', when='target=x86_64:')
-    depends_on('papi', when='+papi')
+    depends_on('papi@6.0.0.1+sde', when='+papi')
     depends_on('libpfm4', when='~papi')
     depends_on('mpi', when='+mpi')
 
