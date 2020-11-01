@@ -31,7 +31,11 @@ class LlvmOpenmp(CMakePackage):
                 '-DLIBOMP_OMPT_SUPPORT=ON',
                 '-DLIBOMP_OMPT_OPTIONAL=ON',]
 
+    variant('multicompat', default=False,
+            description="Support gomp and the Intel openMP runtime library.")
+
     def cmake_args(self):
+
         # Disable LIBOMP_INSTALL_ALIASES, otherwise the library is installed as
         # libgomp alias which can conflict with GCC's libgomp.
         return ['-DLIBOMP_INSTALL_ALIASES=OFF',

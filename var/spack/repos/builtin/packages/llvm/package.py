@@ -2,9 +2,12 @@
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
-
-from spack import *
+import os.path
+import re
 import sys
+
+import llnl.util.tty as tty
+import spack.util.executable
 
 
 class Llvm(CMakePackage, CudaPackage):
@@ -25,6 +28,8 @@ class Llvm(CMakePackage, CudaPackage):
 
     # fmt: off
     version('master', branch='master')
+    version('11.0.0', sha256='8ad4ddbafac4f2c8f2ea523c2c4196f940e8e16f9e635210537582a48622a5d5')
+    version('10.0.1', sha256='c7ccb735c37b4ec470f66a6c35fbae4f029c0f88038f6977180b1a8ddc255637')
     version('10.0.0', sha256='b81c96d2f8f40dc61b14a167513d87c0d813aae0251e06e11ae8a4384ca15451')
     version('9.0.1', sha256='be7b034641a5fda51ffca7f5d840b1a768737779f75f7c4fd18fe2d37820289a')
     version('9.0.0', sha256='7807fac25330e24e9955ca46cd855dd34bbc9cc4fdba8322366206654d1036f2')
@@ -119,6 +124,8 @@ class Llvm(CMakePackage, CudaPackage):
         default=False,
         description="Build with OpenMP capable thread sanitizer",
     )
+    variant('code_signing', default=False,
+            description="Enable code-signing on macOS")
     variant("python", default=False, description="Install python bindings")
 
     extends("python", when="+python")
@@ -132,9 +139,6 @@ class Llvm(CMakePackage, CudaPackage):
     depends_on("python@2.7:2.8", when="@:4.999+python")
     depends_on("python", when="@5:+python")
     depends_on("z3", when="@9:")
-
-    # CUDA dependency
-    depends_on("cuda", when="+cuda")
 
     # openmp dependencies
     depends_on("perl-data-dumper", type=("build"))
@@ -157,7 +161,6 @@ class Llvm(CMakePackage, CudaPackage):
     depends_on("gmp", when="@:3.6.999 +polly")
     depends_on("isl", when="@:3.6.999 +polly")
 
-    conflicts("+clang_extra", when="~clang")
     conflicts("+lldb", when="~clang")
     conflicts("+libcxx", when="~clang")
     conflicts("+internal_unwind", when="~clang")
@@ -170,8 +173,24 @@ class Llvm(CMakePackage, CudaPackage):
     # OMP TSAN exists in > 5.x
     conflicts("+omp_tsan", when="@:5.99")
 
+    # cuda_arch value must be specified
+    conflicts("cuda_arch=none", when="+cuda", msg="A value for cuda_arch must be specified.")
+
     # MLIR exists in > 10.x
     conflicts("+mlir", when="@:9")
+
+    # code signing is only necessary on macOS",
+    conflicts('+code_signing', when='platform=linux')
+    conflicts('+code_signing', when='platform=cray')
+
+    conflicts(
+        '+code_signing',
+        when='~lldb platform=darwin',
+        msg="code signing is only necessary for building the "
+            "in-tree debug server on macOS. Turning this variant "
+            "off enables a build of llvm with lldb that uses the "
+            "system debug server",
+    )
 
     # Github issue #4986
     patch("llvm_gcc7.patch", when="@4.0.0:4.0.1+lldb %gcc@7.0:")
@@ -179,7 +198,7 @@ class Llvm(CMakePackage, CudaPackage):
     # see  https://bugs.llvm.org/show_bug.cgi?id=39696
     # for a bug report about this problem in llvm master.
     patch("constexpr_longdouble.patch", when="@6:8+libcxx")
-    patch("constexpr_longdouble_9.0.patch", when="@9+libcxx")
+    patch("constexpr_longdouble_9.0.patch", when="@9:10.0.0+libcxx")
 
     # Backport from llvm master; see
     # https://bugs.llvm.org/show_bug.cgi?id=38233
@@ -189,31 +208,133 @@ class Llvm(CMakePackage, CudaPackage):
     # https://bugs.llvm.org/show_bug.cgi?id=39696
     patch("thread-p9.patch", when="@develop+libcxx")
 
-    @run_before("cmake")
-    def check_darwin_lldb_codesign_requirement(self):
-        if not self.spec.satisfies("+lldb platform=darwin"):
-            return
-        codesign = which("codesign")
-        mkdir("tmp")
-        llvm_check_file = join_path("tmp", "llvm_check")
-        copy("/usr/bin/false", llvm_check_file)
+    # The functions and attributes below implement external package
+    # detection for LLVM. See:
+    #
+    # https://spack.readthedocs.io/en/latest/packaging_guide.html#making-a-package-discoverable-with-spack-external-find
+    executables = ['clang', 'ld.lld', 'lldb']
 
+    @classmethod
+    def filter_detected_exes(cls, prefix, exes_in_prefix):
+        result = []
+        for exe in exes_in_prefix:
+            # Executables like lldb-vscode-X are daemon listening
+            # on some port and would hang Spack during detection.
+            # clang-cl and clang-cpp are dev tools that we don't
+            # need to test
+            if any(x in exe for x in ('vscode', 'cpp', '-cl', '-gpu')):
+                continue
+            result.append(exe)
+        return result
+
+    @classmethod
+    def determine_version(cls, exe):
+        version_regex = re.compile(
+            # Normal clang compiler versions are left as-is
+            r'clang version ([^ )]+)-svn[~.\w\d-]*|'
+            # Don't include hyphenated patch numbers in the version
+            # (see https://github.com/spack/spack/pull/14365 for details)
+            r'clang version ([^ )]+?)-[~.\w\d-]*|'
+            r'clang version ([^ )]+)|'
+            # LLDB
+            r'lldb version ([^ )\n]+)|'
+            # LLD
+            r'LLD ([^ )\n]+) \(compatible with GNU linkers\)'
+        )
         try:
-            codesign("-f", "-s", "lldb_codesign", "--dryrun", llvm_check_file)
+            compiler = Executable(exe)
+            output = compiler('--version', output=str, error=str)
+            if 'Apple' in output:
+                return None
+            match = version_regex.search(output)
+            if match:
+                return match.group(match.lastindex)
+        except spack.util.executable.ProcessError:
+            pass
+        except Exception as e:
+            tty.debug(e)
 
-        except ProcessError:
-            # Newer LLVM versions have a simple script that sets up
-            # automatically
-            setup = Executable("./lldb/scripts/macos-setup-codesign.sh")
+        return None
+
+    @classmethod
+    def determine_variants(cls, exes, version_str):
+        variants, compilers = ['+clang'], {}
+        lld_found, lldb_found = False, False
+        for exe in exes:
+            if 'clang++' in exe:
+                compilers['cxx'] = exe
+            elif 'clang' in exe:
+                compilers['c'] = exe
+            elif 'ld.lld' in exe:
+                lld_found = True
+                compilers['ld'] = exe
+            elif 'lldb' in exe:
+                lldb_found = True
+                compilers['lldb'] = exe
+
+        variants.append('+lld' if lld_found else '~lld')
+        variants.append('+lldb' if lldb_found else '~lldb')
+
+        return ''.join(variants), {'compilers': compilers}
+
+    @classmethod
+    def validate_detected_spec(cls, spec, extra_attributes):
+        # For LLVM 'compilers' is a mandatory attribute
+        msg = ('the extra attribute "compilers" must be set for '
+               'the detected spec "{0}"'.format(spec))
+        assert 'compilers' in extra_attributes, msg
+        compilers = extra_attributes['compilers']
+        for key in ('c', 'cxx'):
+            msg = '{0} compiler not found for {1}'
+            assert key in compilers, msg.format(key, spec)
+
+    @property
+    def cc(self):
+        msg = "cannot retrieve C compiler [spec is not concrete]"
+        assert self.spec.concrete, msg
+        if self.spec.external:
+            return self.spec.extra_attributes['compilers'].get('c', None)
+        result = None
+        if '+clang' in self.spec:
+            result = os.path.join(self.spec.prefix.bin, 'clang')
+        return result
+
+    @property
+    def cxx(self):
+        msg = "cannot retrieve C++ compiler [spec is not concrete]"
+        assert self.spec.concrete, msg
+        if self.spec.external:
+            return self.spec.extra_attributes['compilers'].get('cxx', None)
+        result = None
+        if '+clang' in self.spec:
+            result = os.path.join(self.spec.prefix.bin, 'clang++')
+        return result
+
+    @run_before('cmake')
+    def codesign_check(self):
+        if self.spec.satisfies("+code_signing"):
+            codesign = which('codesign')
+            mkdir('tmp')
+            llvm_check_file = join_path('tmp', 'llvm_check')
+            copy('/usr/bin/false', llvm_check_file)
             try:
-                setup()
-            except Exception:
-                raise RuntimeError(
-                    'The "lldb_codesign" identity must be available to build '
-                    "LLVM with LLDB. See https://lldb.llvm.org/resources/"
-                    "build.html#code-signing-on-macos for details on how to "
-                    "create this identity."
-                )
+                codesign('-f', '-s', 'lldb_codesign', '--dryrun',
+                         llvm_check_file)
+
+            except ProcessError:
+                # Newer LLVM versions have a simple script that sets up
+                # automatically when run with sudo priviliges
+                setup = Executable("./lldb/scripts/macos-setup-codesign.sh")
+                try:
+                    setup()
+                except Exception:
+                    raise RuntimeError(
+                        'spack was unable to either find or set up'
+                        'code-signing on your system. Please refer to'
+                        'https://lldb.llvm.org/resources/build.html#'
+                        'code-signing-on-macos for details on how to'
+                        'create this identity.'
+                    )
 
     def setup_build_environment(self, env):
         env.append_flags("CXXFLAGS", self.compiler.cxx11_flag)
@@ -233,7 +354,8 @@ class Llvm(CMakePackage, CudaPackage):
             "-DLLVM_ENABLE_EH:BOOL=ON",
             "-DCLANG_DEFAULT_OPENMP_RUNTIME:STRING=libomp",
             "-DPYTHON_EXECUTABLE:PATH={0}".format(spec["python"].command.path),
-            "-DLIBOMP_USE_HWLOC=On",
+            "-DLIBOMP_USE_HWLOC:BOOL=ON",
+            "-DLIBOMP_HWLOC_INSTALL_DIR={0}".format(spec["hwloc"].prefix),
         ]
 
         projects = []
@@ -267,8 +389,12 @@ class Llvm(CMakePackage, CudaPackage):
         if "+python" in spec and "+lldb" in spec and spec.satisfies("@5.0.0:"):
             cmake_args.append("-DLLDB_USE_SYSTEM_SIX:Bool=TRUE")
 
-        if "~python" in spec and "+lldb" in spec:
-            cmake_args.append("-DLLDB_DISABLE_PYTHON:Bool=TRUE")
+        if "+lldb" in spec and spec.satisfies("@:9.9.9"):
+            cmake_args.append("-DLLDB_DISABLE_PYTHON:Bool={0}".format(
+                'ON' if '~python' in spec else 'OFF'))
+        if "+lldb" in spec and spec.satisfies("@10.0.0:"):
+            cmake_args.append("-DLLDB_ENABLE_PYTHON:Bool={0}".format(
+                'ON' if '+python' in spec else 'OFF'))
 
         if "+gold" in spec:
             cmake_args.append(
@@ -351,6 +477,9 @@ class Llvm(CMakePackage, CudaPackage):
             ):
                 cmake_args.append("-DCMAKE_BUILD_WITH_INSTALL_RPATH=1")
 
+        if self.spec.satisfies("~code_signing platform=darwin"):
+            cmake_args.append('-DLLDB_USE_SYSTEM_DEBUGSERVER=ON')
+
         # Semicolon seperated list of projects to enable
         cmake_args.append(
             "-DLLVM_ENABLE_PROJECTS:STRING={0}".format(";".join(projects))
@@ -388,13 +517,14 @@ class Llvm(CMakePackage, CudaPackage):
                     "-DCMAKE_INSTALL_PREFIX:PATH={0}".format(spec.prefix),
                 ]
                 cmake_args.extend(self.cmake_args())
-                cmake_args.append('-DLIBOMPTARGET_NVPTX_ENABLE_BCLIB=true')
+                cmake_args.append(
+                    "-DLIBOMPTARGET_NVPTX_ENABLE_BCLIB:BOOL=TRUE"
+                )
 
                 # work around bad libelf detection in libomptarget
                 cmake_args.append(
-                    "-DCMAKE_CXX_FLAGS:String=-I{0} -I{1}".format(
-                        spec["libelf"].prefix.include,
-                        spec["hwloc"].prefix.include,
+                    "-DLIBOMPTARGET_DEP_LIBELF_INCLUDE_DIR:String={0}".format(
+                        spec["libelf"].prefix.include
                     )
                 )
 
