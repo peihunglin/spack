@@ -73,11 +73,22 @@ class ScalapackBase(CMakePackage):
             '-DBLAS_LIBRARIES=%s' % (blas.joined(';'))
         ])
 
+        c_flags = []
         if '+pic' in spec:
-            options.extend([
-                "-DCMAKE_C_FLAGS=%s" % self.compiler.cc_pic_flag,
+            c_flags.append(self.compiler.cc_pic_flag)
+            options.append(
                 "-DCMAKE_Fortran_FLAGS=%s" % self.compiler.fc_pic_flag
-            ])
+            )
+
+        # Work around errors of the form:
+        #   error: implicit declaration of function 'BI_smvcopy' is
+        #   invalid in C99 [-Werror,-Wimplicit-function-declaration]
+        if spec.satisfies('%clang') or spec.satisfies('%apple-clang'):
+            c_flags.append('-Wno-error=implicit-function-declaration')
+
+        options.append(
+            self.define('CMAKE_C_FLAGS', ' '.join(c_flags))
+        )
 
         return options
 
@@ -102,10 +113,3 @@ class NetlibScalapack(ScalapackBase):
     version('2.0.0', sha256='e51fbd9c3ef3a0dbd81385b868e2355900148eea689bf915c5383d72daf73114')
     # versions before 2.0.0 are not using cmake and requires blacs as
     # a separated package
-
-    # See: https://github.com/Reference-ScaLAPACK/scalapack/issues/9
-    patch("cmake_fortran_mangle.patch", when='@2.0.2:2.0.99')
-    # See: https://github.com/Reference-ScaLAPACK/scalapack/pull/10
-    patch("mpi2-compatibility.patch", when='@2.0.2:2.0.99')
-    # See: https://github.com/Reference-ScaLAPACK/scalapack/pull/16
-    patch("int_overflow.patch", when='@2.0.0:2.1.0')
