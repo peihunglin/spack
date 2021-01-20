@@ -69,7 +69,9 @@ class EcpDataVisSdk(BundlePackage):
             state = ['+' if d == '1' else '~' for d in format(i, '0' + str(n) + 'b')]
             [pkg_vars, dep_vars] = [''.join(v) for v in zip(
                 *[(s + pv, s + dv) for s, (pv, dv) in zip(state, variants.items())])]
-            depends_on(dep_spec + dep_vars, when=(pkg_spec + pkg_vars))
+            dependency = ' '.join((dep_spec, dep_vars))
+            predicate = ' '.join((pkg_spec, pkg_vars))
+            depends_on(dependency, when=predicate)
 
     ############################################################
     # Dependencies
@@ -95,8 +97,8 @@ class EcpDataVisSdk(BundlePackage):
     depends_on('ascent+shared+mpi+fortran+openmp+python+vtkh+dray', when='+ascent')
     depends_on('catalyst', when='+catalyst')
 
-    depends_on('py-cinema-lib', when='+cienma')
-    depends_on('py-cinemasci', when='+cienma')
+    depends_on('py-cinema-lib', when='+cinema')
+    depends_on('py-cinemasci', when='+cinema')
 
     variants2deps('paraview+shared+mpi+python3+kits', '+paraview', ['hdf5'])
     # +adios2 is not yet enabled in the paraview package
