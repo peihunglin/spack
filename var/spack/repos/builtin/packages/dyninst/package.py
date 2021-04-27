@@ -19,6 +19,7 @@ class Dyninst(CMakePackage):
     version('10.1.2', branch='instrument_linemap_2')
     version('10.1.1', branch='instrument_linemap')
     version('master', branch='master')
+    version('11.0.0', tag='v11.0.0')
     version('10.2.1', tag='v10.2.1')
     version('10.2.0', tag='v10.2.0')
     version('10.1.0', tag='v10.1.0')

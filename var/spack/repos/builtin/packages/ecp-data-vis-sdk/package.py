@@ -31,11 +31,13 @@ class EcpDataVisSdk(BundlePackage):
 
     # Vis
     variant('ascent', default=False, description="Enable Ascent")
-    variant('cinema', default=True, description="Enable Cinema")
     variant('paraview', default=False, description="Enable ParaView")
     variant('sz', default=True, description="Enable SZ")
     variant('vtkm', default=False, description="Enable VTK-m")
     variant('zfp', default=True, description="Enable ZFP")
+
+    # Outstanding concretization issues
+    # variant('cinema', default=True, description="Enable Cinema")
 
     # Outstanding build issues
     # variant('catalyst', default=False, description="Enable Catalyst")
@@ -108,6 +110,8 @@ class EcpDataVisSdk(BundlePackage):
 
     depends_on('vtk-m+shared+mpi+openmp+rendering', when='+vtkm')
 
-    variants2deps('sz+shared+fortran+python+random_access', '+sz', ['hdf5'])
+    # +python is currently broken in sz
+    # variants2deps('sz+shared+fortran+python+random_access', '+sz', ['hdf5'])
+    variants2deps('sz+shared+fortran+random_access', '+sz', ['hdf5'])
 
     depends_on('zfp', when='+zfp')
