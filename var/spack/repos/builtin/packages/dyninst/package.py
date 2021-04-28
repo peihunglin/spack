@@ -12,8 +12,8 @@ class Dyninst(CMakePackage):
     are executing without recompiling, re-linking, or re-executing."""
 
     homepage = "https://dyninst.org"
-    git      = "https://github.com/zygyz/dyninst.git"
-    #git      = "https://github.com/dyninst/dyninst.git"
+    #git      = "https://github.com/zygyz/dyninst.git"
+    git      = "https://github.com/dyninst/dyninst.git"
 
     #version('develop', branch='master')
     version('10.1.2', branch='instrument_linemap_2')

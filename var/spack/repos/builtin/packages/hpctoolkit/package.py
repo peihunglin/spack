@@ -16,7 +16,7 @@ class Hpctoolkit(AutotoolsPackage):
     and attributes them to the full calling context in which they occur."""
 
     homepage = "http://hpctoolkit.org"
-    git      = "https://github.com/zygyz/hpctoolkit.git"
+    git      = "https://github.com/HPCToolkit/hpctoolkit.git"
     maintainers = ['mwkrentel']
 
     version('dyninst', branch='dyninst_unwind2')
