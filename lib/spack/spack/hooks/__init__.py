@@ -26,10 +26,9 @@ import os.path
 
 import spack.paths
 import spack.util.imp as simp
-from llnl.util.lang import memoized, list_modules
+from llnl.util.lang import list_modules
 
 
-@memoized
 def all_hook_modules():
     modules = []
     for name in list_modules(spack.paths.hooks_path):
