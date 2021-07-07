@@ -45,7 +45,7 @@ class Romp(CMakePackage):
             description='Build with papi sde support')
     
     depends_on('boost')
-    depends_on('dyninst@10.1.2~openmp', when='~debug_dyninst')
+    depends_on('dyninst@11.0.0~openmp', when='~debug_dyninst')
     depends_on('papi@6.0.0.1+sde', when='+papi')
     depends_on('gflags')
     depends_on('glog')
